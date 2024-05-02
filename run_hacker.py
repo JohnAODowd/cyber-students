@@ -10,8 +10,14 @@ from api.conf import MONGODB_HOST, MONGODB_DBNAME
 def get_users(db):
   cur = db.users.find({}, {
     'email': 1,
-    'password': 1,
+    'salt': 1,
+    'hashed_password': 1,
     'displayName': 1,
+    'fullName': 1,
+    'address': 1,
+    'dob': 1,
+    'phoneNumber': 1,
+    'disabilities': 1
   })
   docs = yield cur.to_list(length=None)
   print('There are ' + str(len(docs)) + ' registered users:')

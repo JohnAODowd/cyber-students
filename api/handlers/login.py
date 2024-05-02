@@ -4,6 +4,8 @@ from tornado.escape import json_decode, utf8
 from tornado.gen import coroutine
 from uuid import uuid4
 
+from api.encryption import aes_encrypt, verify_hash
+
 from .base import BaseHandler
 
 class LoginHandler(BaseHandler):
@@ -20,7 +22,7 @@ class LoginHandler(BaseHandler):
         }
 
         yield self.db.users.update_one({
-            'email': email
+            'email': aes_encrypt(email)
         }, {
             '$set': token
         })
@@ -50,16 +52,18 @@ class LoginHandler(BaseHandler):
             return
 
         user = yield self.db.users.find_one({
-          'email': email
-        }, {
-          'password': 1
+          'email': aes_encrypt(email)
         })
 
         if user is None:
             self.send_error(403, message='The email address and password are invalid!')
             return
+        
+        # Verify that salt and hash of the given password matches the stored hashed password.
+        salt = user['salt']
+        hashed_password = user['hashed_password']
 
-        if user['password'] != password:
+        if not verify_hash(salt, password, hashed_password):
             self.send_error(403, message='The email address and password are invalid!')
             return
 
